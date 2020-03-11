@@ -9,6 +9,28 @@ class LinkedPair:
         self.value = value
         self.next = None
 
+    def __str__(self):
+        return f"{{{self.key}, {self.value}}}"
+
+    # add item at the end of linked list. if key exits, overwrite value
+    def append(self, key, value):
+        if self.key == key:
+            self.value = value
+        elif not self.next:
+            self.next = LinkedPair(key, value)
+        else:
+            return self.next.append(key, value)
+
+    # gets an item from our linked list
+    def get(self, key):
+        if self.key == key:
+            return self.value
+        elif not self.next:
+            print(f"Hash of {key} is undefined")
+            return None
+        else:
+            return self.next.get(key)
+
 
 class HashTable:
     '''
@@ -27,11 +49,7 @@ class HashTable:
 
         You may replace the Python hash with DJB2 as a stretch goal.
         '''
-        hash = 5381
-        for k in key:
-            hash = ((hash << 5) + h) + ord(k)
-
-        return hash % self.capacity
+        return hash(key)
 
     def _hash_djb2(self, key):
         '''
@@ -39,7 +57,11 @@ class HashTable:
 
         OPTIONAL STRETCH: Research and implement DJB2
         '''
-        pass
+        hash = 5381
+        for k in key:
+            hash = ((hash << 5) + h) + ord(k)
+
+        return hash % self.capacity
 
     def _hash_mod(self, key):
         '''
@@ -56,12 +78,15 @@ class HashTable:
 
         Fill this in.
         '''
-        index = self._hash_mod(key)
-        if self.storage[index] is not None:
-            print('Index collision')
-            return
+        if not None in self.storage:
+            self.resize()
 
-        self.storage[index] = LinkedPair(key, value)
+        index = self._hash_mod(key)
+
+        if self.storage[index]:
+            self.storage[index].append(key, value)
+        else:
+            self.storage[index] = LinkedPair(key, value)
 
     def remove(self, key):
         '''
@@ -72,11 +97,24 @@ class HashTable:
         Fill this in.
         '''
         index = self._hash_mod(key)
-        if self.storage[index] is None:
+        if not self.storage[index]:
             print("Key not found")
             return
 
-        self.storage[index] = None
+        current_node = self.storage[index]
+        prev_node = None
+
+        if current_node.key == key and not current_node.next:
+            self.storage[index] = None
+        elif current_node.key == key:
+            self.storage[index] = self.storage[index].next
+        else:
+            while current_node:
+                if current_node.key == key:
+                    prev_node.next = current_node.next
+                    return
+                prev_node = current_node
+                current_node = current_node.next
 
     def retrieve(self, key):
         '''
@@ -92,7 +130,7 @@ class HashTable:
         if pair is None:
             return None
         else:
-            return self.storage[index].value
+            return self.storage[index].get(key)
 
     def resize(self):
         '''
@@ -102,14 +140,15 @@ class HashTable:
         Fill this in.
         '''
         self.capacity *= 2
-        new_storage = [None] * self.capacity
+        old_storage = self.storage
+        self.storage = [None] * self.capacity
 
-        for item in self.storage:
-            if item is not None:
-                new_index = self._hash_mod(item.key)
-                new_storage[new_index] = item
-
-        self.storage = new_storage
+        for item in old_storage:
+            if item:
+                current_node = item
+                while current_node:
+                    self.insert(current_node.key, current_node.value)
+                    current_node = current_node.next
 
 
 if __name__ == "__main__":
